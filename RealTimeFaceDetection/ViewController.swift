@@ -12,18 +12,18 @@ import AVKit
 
 class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
     
-    var cameraLayer: AVCaptureVideoPreviewLayer!
-    var count = 0
+    fileprivate var count = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         // create the video feed
         createAVsession()
         
     }
     
-    
     fileprivate func createAVsession() {
+        
         let captureSession = AVCaptureSession()
         
         guard let captureDevice = AVCaptureDevice.default(for: .video) else {
@@ -36,27 +36,18 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         
         captureSession.startRunning()
         
-        cameraLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        let cameraLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         view.layer.addSublayer(cameraLayer)
         cameraLayer.frame = view.frame
         
         let dataOutput = AVCaptureVideoDataOutput()
         dataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue") )
         captureSession.addOutput(dataOutput)
-    }
-    
-    
-    fileprivate func createBox(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, _ counter: Int) {
-        let boxView = UIView()
-        boxView.backgroundColor = .red
-        boxView.alpha = 0.3
-        boxView.tag = counter
-        boxView.frame = CGRect(x: x, y: y, width: width, height: height)
-        print(boxView.frame)
-        self.view.addSubview(boxView)
+        
     }
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        
         // try to get pixelbuffer 'images'
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
@@ -69,14 +60,11 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             }
             
             DispatchQueue.main.async {
+                
                 // remove face rectangles from the previous frame if exists
                 for i in 100..<self.count+100 {
                     if let oldView = self.view.viewWithTag(i) {
                         oldView.removeFromSuperview()
-                        print("removed")
-                    }
-                    else {
-                        print("not removed")
                     }
                 }
                 // check to get face rectangle results
@@ -88,6 +76,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                 
                 // iterate rectangle results to process
                 requestResults.forEach({ (result) in
+                    
                     guard let faceBoxes = result as? VNFaceObservation else { return }
                     
                     // construct the rectangle from the normalized boundingBox values
@@ -99,19 +88,33 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                     // create the box to be drawn on self.view
                     self.createBox(x, y, width, height, counter)
                     counter += 1
+                    
                 })
             }
         }
         
         // let's handle the request
         DispatchQueue.global(qos: .background).async {
+            
             do {
                 try VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([faceRequest])
             } catch let handlerError {
                 print("A handle occurred with the description: ", handlerError)
             }
+            
         }
     }
 
+    fileprivate func createBox(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, _ counter: Int) {
+        
+        let boxView = UIView()
+        boxView.backgroundColor = .red
+        boxView.alpha = 0.3
+        boxView.tag = counter
+        boxView.frame = CGRect(x: x, y: y, width: width, height: height)
+        self.view.addSubview(boxView)
+        
+    }
+    
 }
 
