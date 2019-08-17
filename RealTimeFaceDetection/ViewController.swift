@@ -13,15 +13,17 @@ import AVKit
 class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
     
     var cameraLayer: AVCaptureVideoPreviewLayer!
+    var count = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        setupAVLayerandSession()
+        // create the video feed
+        createAVsession()
         
     }
     
-    func setupAVLayerandSession() {
+    
+    fileprivate func createAVsession() {
         let captureSession = AVCaptureSession()
         
         guard let captureDevice = AVCaptureDevice.default(for: .video) else {
@@ -29,81 +31,87 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             return
         }
         
-        
         guard let input = try? AVCaptureDeviceInput(device: captureDevice) else { return }
         captureSession.addInput(input)
         
         captureSession.startRunning()
         
         cameraLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        
         view.layer.addSublayer(cameraLayer)
         cameraLayer.frame = view.frame
         
         let dataOutput = AVCaptureVideoDataOutput()
         dataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue") )
-
-
         captureSession.addOutput(dataOutput)
-        
     }
     
     
+    fileprivate func createBox(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, _ counter: Int) {
+        let boxView = UIView()
+        boxView.backgroundColor = .red
+        boxView.alpha = 0.3
+        boxView.tag = counter
+        boxView.frame = CGRect(x: x, y: y, width: width, height: height)
+        print(boxView.frame)
+        self.view.addSubview(boxView)
+    }
+    
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        
+        // try to get pixelbuffer 'images'
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
-        
-        let faceRequest = VNDetectFaceRectanglesRequest { (request, requestError) in
+        // let's make a request for the rectangle covering the face
+        let faceRequest = VNDetectFaceRectanglesRequest { [unowned self] (request, requestError) in
+            // control whether an error occurs
             if let error = requestError {
                 print("We have a request error: ", error)
                 return
             }
             
-            
-            request.results?.forEach({ (result) in
-                guard let faceBoxes = result as? VNFaceObservation else { return }
-                
-                DispatchQueue.main.async {
-                    if let oldView = self.view.viewWithTag(2) {
+            DispatchQueue.main.async {
+                // remove face rectangles from the previous frame if exists
+                for i in 100..<self.count+100 {
+                    if let oldView = self.view.viewWithTag(i) {
                         oldView.removeFromSuperview()
                         print("removed")
                     }
                     else {
                         print("not removed")
                     }
-                    let height =  self.view.frame.height * faceBoxes.boundingBox.height
-                    let x = self.view.frame.width * faceBoxes.boundingBox.origin.x
-                    let y = self.cameraLayer.frame.height * (1 - faceBoxes.boundingBox.height) - height
-                    let width = self.view.frame.width * faceBoxes.boundingBox.width
-                    
-                    
-                    let boxView = UIView()
-                    boxView.backgroundColor = .red
-                    boxView.alpha = 0.3
-                    boxView.tag = 2
-                    boxView.frame = CGRect(x: x, y: y, width: width, height: height)
-                    print(boxView.frame)
-                    
-                    self.view.addSubview(boxView)
-                    
-                    
                 }
+                // check to get face rectangle results
+                guard let requestResults = request.results else { return }
                 
-            })
-            
+                // counter is for tagging rectangles so that they can be removed
+                var counter = 100
+                self.count = requestResults.count
+                
+                // iterate rectangle results to process
+                requestResults.forEach({ (result) in
+                    guard let faceBoxes = result as? VNFaceObservation else { return }
+                    
+                    // construct the rectangle from the normalized boundingBox values
+                    let x = self.view.frame.width * faceBoxes.boundingBox.origin.x
+                    let height = self.view.frame.height * faceBoxes.boundingBox.height
+                    let width = self.view.frame.width * faceBoxes.boundingBox.width
+                    let y = self.view.frame.height - height - self.view.frame.height * faceBoxes.boundingBox.origin.y
+                    
+                    // create the box to be drawn on self.view
+                    self.createBox(x, y, width, height, counter)
+                    counter += 1
+                })
+            }
         }
         
-        
-        do {
-            try VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([faceRequest])
-        } catch let handlerError {
-            print("A handle occurred with the description: ", handlerError)
+        // let's handle the request
+        DispatchQueue.global(qos: .background).async {
+            do {
+                try VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([faceRequest])
+            } catch let handlerError {
+                print("A handle occurred with the description: ", handlerError)
+            }
         }
-        
-        
     }
-
 
 }
 
