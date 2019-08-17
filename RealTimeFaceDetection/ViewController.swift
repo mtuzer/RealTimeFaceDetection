@@ -19,11 +19,9 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         
         // create the video feed
         createAVsession()
-        
     }
     
     fileprivate func createAVsession() {
-        
         let captureSession = AVCaptureSession()
         
         guard let captureDevice = AVCaptureDevice.default(for: .video) else {
@@ -43,11 +41,9 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         let dataOutput = AVCaptureVideoDataOutput()
         dataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue") )
         captureSession.addOutput(dataOutput)
-        
     }
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        
         // try to get pixelbuffer 'images'
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
@@ -60,7 +56,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             }
             
             DispatchQueue.main.async {
-                
                 // remove face rectangles from the previous frame if exists
                 for i in 100..<self.count+100 {
                     if let oldView = self.view.viewWithTag(i) {
@@ -88,32 +83,27 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                     // create the box to be drawn on self.view
                     self.createBox(x, y, width, height, counter)
                     counter += 1
-                    
                 })
             }
         }
         
         // let's handle the request
         DispatchQueue.global(qos: .background).async {
-            
             do {
                 try VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([faceRequest])
             } catch let handlerError {
                 print("A handle occurred with the description: ", handlerError)
             }
-            
         }
     }
 
     fileprivate func createBox(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, _ counter: Int) {
-        
         let boxView = UIView()
         boxView.backgroundColor = .red
         boxView.alpha = 0.3
         boxView.tag = counter
         boxView.frame = CGRect(x: x, y: y, width: width, height: height)
         self.view.addSubview(boxView)
-        
     }
     
 }
