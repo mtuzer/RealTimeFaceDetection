@@ -81,7 +81,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                     
                     guard let faceBoxes = result as? VNFaceObservation else { return }
                     
-                    // construct the rectangle from the normalized boundingBox values
+                    // construct the rectangle from the normalized boundingBox values.
                     let x = self.view.frame.width * faceBoxes.boundingBox.origin.x
                     let height = self.view.frame.height * faceBoxes.boundingBox.height
                     let width = self.view.frame.width * faceBoxes.boundingBox.width
