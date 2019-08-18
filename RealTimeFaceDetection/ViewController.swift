@@ -32,15 +32,22 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         guard let input = try? AVCaptureDeviceInput(device: captureDevice) else { return }
         captureSession.addInput(input)
         
-        captureSession.startRunning()
         
         let cameraLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         view.layer.addSublayer(cameraLayer)
         cameraLayer.frame = view.frame
         
+        captureSession.startRunning()
+        
         let dataOutput = AVCaptureVideoDataOutput()
         dataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue") )
         captureSession.addOutput(dataOutput)
+        
+        guard let connection = dataOutput.connection(with: AVFoundation.AVMediaType.video) else { return }
+        guard connection.isVideoOrientationSupported else { return }
+        guard connection.isVideoMirroringSupported else { return }
+        connection.videoOrientation = .portrait
+
     }
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
@@ -79,7 +86,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                     let height = self.view.frame.height * faceBoxes.boundingBox.height
                     let width = self.view.frame.width * faceBoxes.boundingBox.width
                     let y = self.view.frame.height - height - self.view.frame.height * faceBoxes.boundingBox.origin.y
-                    
+                
                     // create the box to be drawn on self.view
                     self.createBox(x, y, width, height, counter)
                     counter += 1
