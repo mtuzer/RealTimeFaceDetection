@@ -32,7 +32,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         guard let input = try? AVCaptureDeviceInput(device: captureDevice) else { return }
         captureSession.addInput(input)
         
-        
         let cameraLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         view.layer.addSublayer(cameraLayer)
         cameraLayer.frame = view.frame
@@ -95,19 +94,17 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         }
         
         // let's handle the request
-        DispatchQueue.global(qos: .background).async {
-            do {
-                try VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([faceRequest])
-            } catch let handlerError {
-                print("A handle occurred with the description: ", handlerError)
-            }
+        do {
+            try VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([faceRequest])
+        } catch let handlerError {
+            print("A handle occurred with the description: ", handlerError)
         }
     }
 
     fileprivate func createBox(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, _ counter: Int) {
         let boxView = UIView()
         boxView.backgroundColor = .red
-        boxView.alpha = 0.3
+        boxView.alpha = 0.4
         boxView.tag = counter
         boxView.frame = CGRect(x: x, y: y, width: width, height: height)
         self.view.addSubview(boxView)
